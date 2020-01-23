@@ -11,7 +11,7 @@ Try adding the \`cookie-parser\` middleware to your express app.
 https://github.com/expressjs/cookie-parser
 `;
 
-function validateToken(req, res, next) {
+function checkForAuthToken(req, res, next) {
   if (!req.cookies) {
     throw new Error(NO_COOKIES_ERROR);
   }
@@ -34,8 +34,6 @@ function githubAuthrouter() {
   const router = express.Router();
 
   router.get("/github/authorized", async (req, res) => {
-    console.log("github app installation complete ");
-
     axios
       .post(
         `https://github.com/login/oauth/access_token`,
@@ -52,7 +50,7 @@ function githubAuthrouter() {
       });
   });
 
-  router.use(validateToken);
+  router.use(checkForAuthToken);
 
   return router;
 }

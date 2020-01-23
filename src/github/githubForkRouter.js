@@ -15,18 +15,15 @@ function githubForkRouter() {
   const router = express.Router();
 
   router.get("/github/fork", async (req, res) => {
-    console.log("creating a fork");
-
-    const ownerRepo = decodeURI(req.query.owner_repo);
+    const repoFullName = decodeURI(req.query.owner_repo);
 
     axios
       .post(
-        `https://api.github.com/repos/${ownerRepo}/forks?${qs.stringify({
+        `https://api.github.com/repos/${repoFullName}/forks?${qs.stringify({
           access_token: req.cookies["tina-github-auth"]
         })}`
       )
       .then(forkResp => {
-        console.log("created fork");
         const { full_name } = qs.parse(forkResp.data);
         res.cookie(GITHUB_FORK_COOKIE_KEY, decodeURI(full_name));
         res.redirect(`/`);
@@ -36,7 +33,7 @@ function githubForkRouter() {
       });
   });
 
-  function createFork(req, res, next) {
+  function requestForking(req, res, next) {
     if (!req.cookies) {
       throw new Error(NO_COOKIES_ERROR);
     }
@@ -51,7 +48,7 @@ function githubForkRouter() {
     next();
   }
 
-  router.use(createFork);
+  router.use(requestForking);
 
   return router;
 }

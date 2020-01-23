@@ -11,7 +11,7 @@ import Layout from "../../components/Layout";
 import toMarkdownString from "../../utils/toMarkdownString";
 
 export class PRPlugin {
-  constructor(ownerRepo, branch, accessToken) {
+  constructor(repoFullName, branch, accessToken) {
     this.__type = "screen";
     this.name = "Create Pull Request";
     this.Icon = () => <>🚀</>;
@@ -27,7 +27,7 @@ export class PRPlugin {
         data: {
           title: "Update from TinaCMS",
           body: "Please pull these awesome changes in!",
-          head: `${ownerRepo.split("/")[0]}:${branch}`,
+          head: `${repoFullName.split("/")[0]}:${branch}`,
           base: branch
         }
       })
@@ -45,8 +45,8 @@ export class PRPlugin {
       return (
         <div>
           <p>
-            This will create a PR from {ownerRepo} - {branch} into {ownerRepo} -{" "}
-            {branch}
+            This will create a PR from {repoFullName} - {branch} into{" "}
+            {repoFullName} - {branch}
           </p>
           <button onClick={this.createPR}>Create PR</button>
 
@@ -118,7 +118,7 @@ export default function BlogTemplate(props) {
       console.log("SAVE", data);
       return axios({
         method: "PUT",
-        url: `https://api.github.com/repos/${props.forkOwnerRepo}/contents/${data.fileRelativePath}?access_token=${props.access_token}`,
+        url: `https://api.github.com/repos/${props.forkFullName}/contents/${data.fileRelativePath}?access_token=${props.access_token}`,
         data: {
           message: "Update from TinaCMS",
           content: btoa(toMarkdownString(data)),
@@ -137,12 +137,8 @@ export default function BlogTemplate(props) {
 
   function usePRPlugin() {
     const brancher = useMemo(() => {
-      return new PRPlugin(
-        props.forkOwnerRepo,
-        props.branch,
-        props.access_token
-      );
-    }, [props.forkOwnerRepo, props.branch, props.access_token]);
+      return new PRPlugin(props.forkFullName, props.branch, props.access_token);
+    }, [props.forkFullName, props.branch, props.access_token]);
 
     usePlugins(brancher);
   }
@@ -313,13 +309,13 @@ BlogTemplate.getInitialProps = async function(ctx) {
   const { slug } = ctx.query;
 
   const access_token = ctx.req.cookies["tina-github-auth"];
-  const forkOwnerRepo = ctx.req.cookies["tina-github-fork-name"];
+  const forkFullName = ctx.req.cookies["tina-github-fork-name"];
 
-  console.log(`forkOwnerRepo ${forkOwnerRepo}`);
+  console.log(`forkFullName ${forkFullName}`);
   const branch = ctx.query.branch || "master";
   const post = await axios({
     method: "GET",
-    url: `https://api.github.com/repos/${forkOwnerRepo}/contents/src/posts/${slug}.md?access_token=${access_token}&ref=${branch}`
+    url: `https://api.github.com/repos/${forkFullName}/contents/src/posts/${slug}.md?access_token=${access_token}&ref=${branch}`
   });
 
   const config = await import(`../../data/config.json`);
@@ -331,7 +327,7 @@ BlogTemplate.getInitialProps = async function(ctx) {
     branch,
     sha: post.data.sha,
     access_token,
-    forkOwnerRepo,
+    forkFullName,
     ...data
   };
 };
