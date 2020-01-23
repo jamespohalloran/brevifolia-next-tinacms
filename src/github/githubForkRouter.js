@@ -15,11 +15,11 @@ function githubForkRouter() {
   const router = express.Router();
 
   router.get("/github/fork", async (req, res) => {
-    const repoFullName = decodeURI(req.query.owner_repo);
-
     axios
       .post(
-        `https://api.github.com/repos/${repoFullName}/forks?${qs.stringify({
+        `https://api.github.com/repos/${
+          process.env.REPO_FULL_NAME
+        }/forks?${qs.stringify({
           access_token: req.cookies["tina-github-auth"]
         })}`
       )
