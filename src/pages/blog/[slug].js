@@ -115,23 +115,28 @@ export default function BlogTemplate(props) {
 
     // save & commit the file when the "save" button is pressed
     onSubmit(data, form) {
-      console.log("SAVE", data);
-      return axios({
-        method: "PUT",
-        url: `https://api.github.com/repos/${props.forkFullName}/contents/${data.fileRelativePath}?access_token=${props.access_token}`,
-        data: {
-          message: "Update from TinaCMS",
-          content: btoa(toMarkdownString(data)),
-          sha: data.sha,
-          branch: props.branch
-        }
-      }).then(response => {
-        window.location.reload();
-        // console.log("set sha " + response.data.content.sha);
-        // console.log(`formdata`, form);
-        // form.change("sha", response.data.content.sha);
-        // console.log({ formAfter: form.getState().values });
-      }); //hack so sha updates
+      if (process.env.NODE_ENV == "staging") {
+        console.log("SAVE", data);
+        return axios({
+          method: "PUT",
+          url: `https://api.github.com/repos/${props.forkFullName}/contents/${data.fileRelativePath}?access_token=${props.access_token}`,
+          data: {
+            message: "Update from TinaCMS",
+            content: btoa(toMarkdownString(data)),
+            sha: data.sha,
+            branch: props.branch
+          }
+        }).then(response => {
+          window.location.reload();
+          // console.log("set sha " + response.data.content.sha);
+          // console.log(`formdata`, form);
+          // form.change("sha", response.data.content.sha);
+          // console.log({ formAfter: form.getState().values });
+        }); //hack so sha updates
+      } else {
+        // create commit?
+        alert("saves on localhost not supported");
+      }
     }
   });
 
@@ -307,27 +312,37 @@ export default function BlogTemplate(props) {
 
 BlogTemplate.getInitialProps = async function(ctx) {
   const { slug } = ctx.query;
-
-  const access_token = ctx.req.cookies["tina-github-auth"];
-  const forkFullName = ctx.req.cookies["tina-github-fork-name"];
-
-  console.log(`forkFullName ${forkFullName}`);
-  const branch = ctx.query.branch || "master";
-  const post = await axios({
-    method: "GET",
-    url: `https://api.github.com/repos/${forkFullName}/contents/src/posts/${slug}.md?access_token=${access_token}&ref=${branch}`
-  });
-
   const config = await import(`../../data/config.json`);
-  const data = matter(atob(post.data.content));
 
-  return {
-    fileRelativePath: `src/posts/${slug}.md`,
-    title: config.title,
-    branch,
-    sha: post.data.sha,
-    access_token,
-    forkFullName,
-    ...data
-  };
+  if (process.env.NODE_ENV == "staging") {
+    const access_token = ctx.req.cookies["tina-github-auth"];
+    const forkFullName = ctx.req.cookies["tina-github-fork-name"];
+
+    const branch = ctx.query.branch || "master";
+    const post = await axios({
+      method: "GET",
+      url: `https://api.github.com/repos/${forkFullName}/contents/src/posts/${slug}.md?access_token=${access_token}&ref=${branch}`
+    });
+
+    const data = matter(atob(post.data.content));
+
+    return {
+      fileRelativePath: `src/posts/${slug}.md`,
+      title: config.title,
+      branch,
+      sha: post.data.sha,
+      access_token,
+      forkFullName,
+      ...data
+    };
+  } else {
+    const content = await import(`../../posts/${slug}.md`);
+    const data = matter(content.default);
+
+    return {
+      fileRelativePath: `src/posts/${slug}.md`,
+      title: config.title,
+      ...data
+    };
+  }
 };

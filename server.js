@@ -19,8 +19,11 @@ app.prepare().then(() => {
   const server = express();
 
   server.use(cookieParser());
-  server.use(githubAuthRouter());
-  server.use(githubForkRouter());
+  if (process.env.NODE_ENV == "staging") {
+    server.use(githubAuthRouter());
+    server.use(githubForkRouter());
+  }
+
   server.use("/___tina", gitApi.router());
   server.use(cors());
   server.all("*", (req, res) => {
