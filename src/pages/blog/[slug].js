@@ -3,9 +3,8 @@ import matter from "gray-matter";
 import ReactMarkdown from "react-markdown";
 import { useCMS, useLocalForm, useWatchFormValues } from "tinacms";
 import { usePlugins, ScreenPlugin } from "tinacms";
-const axios = require("axios");
 const atob = require("atob");
-const btoa = require("btoa");
+const { createPR, getContent, saveContent } = require("../../github/api");
 
 import Layout from "../../components/Layout";
 import toMarkdownString from "../../utils/toMarkdownString";
@@ -23,16 +22,7 @@ export class PRPlugin {
     };
 
     this.createPR = () => {
-      return axios({
-        method: "POST",
-        url: `https://api.github.com/repos/${baseRepoFullName}/pulls?access_token=${accessToken}`,
-        data: {
-          title: "Update from TinaCMS",
-          body: "Please pull these awesome changes in!",
-          head: `${forkRepoFullName.split("/")[0]}:${branch}`,
-          base: branch
-        }
-      })
+      createPR(baseRepoFullName, forkRepoFullName, branch, accessToken)
         .then(response => {
           alert(`you made a PR!: ${response.data.html_url}`);
         })
@@ -132,22 +122,16 @@ export default function BlogTemplate(props) {
     // save & commit the file when the "save" button is pressed
     onSubmit(data, form) {
       if (USE_CONTENT_API) {
-        console.log("SAVE", data);
-        return axios({
-          method: "PUT",
-          url: `https://api.github.com/repos/${props.forkFullName}/contents/${data.fileRelativePath}?access_token=${props.access_token}`,
-          data: {
-            message: "Update from TinaCMS",
-            content: btoa(toMarkdownString(data)),
-            sha: data.sha,
-            branch: props.branch
-          }
-        }).then(response => {
+        saveContent(
+          props.forkFullName,
+          props.branch,
+          data.fileRelativePath,
+          props.access_token,
+          data.sha,
+          toMarkdownString(data),
+          "Update from TinaCMS"
+        ).then(response => {
           window.location.reload();
-          // console.log("set sha " + response.data.content.sha);
-          // console.log(`formdata`, form);
-          // form.change("sha", response.data.content.sha);
-          // console.log({ formAfter: form.getState().values });
         }); //hack so sha updates
       } else {
         // create commit?
@@ -347,10 +331,12 @@ BlogTemplate.getInitialProps = async function(ctx) {
     const forkFullName = ctx.req.cookies["tina-github-fork-name"];
 
     const branch = ctx.query.branch || "master";
-    const post = await axios({
-      method: "GET",
-      url: `https://api.github.com/repos/${forkFullName}/contents/src/posts/${slug}.md?access_token=${access_token}&ref=${branch}`
-    });
+    const post = await getContent(
+      forkFullName,
+      branch,
+      `src/posts/${slug}.md`,
+      access_token
+    );
 
     const data = matter(atob(post.data.content));
 

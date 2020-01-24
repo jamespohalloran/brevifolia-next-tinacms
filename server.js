@@ -8,6 +8,7 @@ const dev = process.env.NODE_ENV !== "production";
 
 const githubForkRouter = require("./src/github/githubForkRouter");
 const githubAuthRouter = require("./src/github/githubAuthRouter");
+const USE_CONTENT_API = true;
 
 const app = next({
   dev,
@@ -19,7 +20,7 @@ app.prepare().then(() => {
   const server = express();
 
   server.use(cookieParser());
-  if (process.env.NODE_ENV == "staging") {
+  if (USE_CONTENT_API) {
     server.use(githubAuthRouter());
     server.use(githubForkRouter());
   }
