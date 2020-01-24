@@ -1,5 +1,6 @@
 const btoa = require("btoa");
 const axios = require("axios");
+const qs = require("qs");
 
 const createPR = (baseRepoFullName, forkRepoFullName, branch, accessToken) => {
   return axios({
@@ -42,8 +43,29 @@ const saveContent = async (
   });
 };
 
+const createAccessToken = (clientId, clientSecret, code) => {
+  return axios.post(
+    `https://github.com/login/oauth/access_token`,
+    qs.stringify({
+      client_id: process.env.GITHUB_CLIENT_ID,
+      client_secret: process.env.GITHUB_CLIENT_SECRET,
+      code: code
+    })
+  );
+};
+
+const createFork = (repoFullName, accessToken) => {
+  return axios.post(
+    `https://api.github.com/repos/${repoFullName}/forks?${qs.stringify({
+      access_token: accessToken
+    })}`
+  );
+};
+
 module.exports = {
   createPR,
   saveContent,
-  getContent
+  getContent,
+  createAccessToken,
+  createFork
 };

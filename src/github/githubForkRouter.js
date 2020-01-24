@@ -1,7 +1,7 @@
 const express = require("express");
-const axios = require("axios");
 const qs = require("qs");
 const path = require("path");
+const { createFork } = require("./api");
 
 const GITHUB_FORK_COOKIE_KEY = "tina-github-fork-name";
 const NO_COOKIES_ERROR = `@tinacms/teams \`authenticate\` middleware could not find cookies on the request.
@@ -15,14 +15,7 @@ function githubForkRouter() {
   const router = express.Router();
 
   router.get("/github/fork", async (req, res) => {
-    axios
-      .post(
-        `https://api.github.com/repos/${
-          process.env.REPO_FULL_NAME
-        }/forks?${qs.stringify({
-          access_token: req.cookies["tina-github-auth"]
-        })}`
-      )
+    createFork(process.env.REPO_FULL_NAME, req.cookies["tina-github-auth"])
       .then(forkResp => {
         const { full_name } = qs.parse(forkResp.data);
         res.cookie(GITHUB_FORK_COOKIE_KEY, full_name);

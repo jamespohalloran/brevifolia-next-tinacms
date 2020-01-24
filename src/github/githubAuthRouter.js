@@ -1,6 +1,7 @@
 const express = require("express");
 const axios = require("axios");
 const qs = require("qs");
+const { createAccessToken } = require("./api");
 
 const GITHUB_AUTH_COOKIE_KEY = "tina-github-auth";
 
@@ -30,28 +31,23 @@ function checkForAuthToken(req, res, next) {
   next();
 }
 
-function githubAuthrouter() {
+function githubAuthRouter() {
   const router = express.Router();
 
   router.get("/github/authorized", async (req, res) => {
-    axios
-      .post(
-        `https://github.com/login/oauth/access_token`,
-        qs.stringify({
-          client_id: process.env.GITHUB_CLIENT_ID,
-          client_secret: process.env.GITHUB_CLIENT_SECRET,
-          code: req.query.code
-        })
-      )
-      .then(tokenResp => {
-        const { access_token } = qs.parse(tokenResp.data);
-        res.cookie(GITHUB_AUTH_COOKIE_KEY, access_token);
-        res.redirect(`/`);
-      });
+    createAccessToken(
+      process.env.GITHUB_CLIENT_ID,
+      process.env.GITHUB_CLIENT_SECRET,
+      req.query.code
+    ).then(tokenResp => {
+      const { access_token } = qs.parse(tokenResp.data);
+      res.cookie(GITHUB_AUTH_COOKIE_KEY, access_token);
+      res.redirect(`/`);
+    });
   });
 
   router.use(checkForAuthToken);
 
   return router;
 }
-module.exports = githubAuthrouter;
+module.exports = githubAuthRouter;
