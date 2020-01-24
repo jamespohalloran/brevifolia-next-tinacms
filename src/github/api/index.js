@@ -47,8 +47,8 @@ const createAccessToken = (clientId, clientSecret, code) => {
   return axios.post(
     `https://github.com/login/oauth/access_token`,
     qs.stringify({
-      client_id: process.env.GITHUB_CLIENT_ID,
-      client_secret: process.env.GITHUB_CLIENT_SECRET,
+      client_id: clientId,
+      client_secret: clientSecret,
       code: code
     })
   );
