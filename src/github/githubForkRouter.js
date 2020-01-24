@@ -17,15 +17,15 @@ function githubForkRouter() {
   router.get("/github/fork", async (req, res) => {
     axios
       .post(
-        `https://api.github.com/repos/${decodeURIComponent(
+        `https://api.github.com/repos/${
           process.env.REPO_FULL_NAME
-        )}/forks?${qs.stringify({
+        }/forks?${qs.stringify({
           access_token: req.cookies["tina-github-auth"]
         })}`
       )
       .then(forkResp => {
         const { full_name } = qs.parse(forkResp.data);
-        res.cookie(GITHUB_FORK_COOKIE_KEY, decodeURIComponent(full_name));
+        res.cookie(GITHUB_FORK_COOKIE_KEY, full_name);
         res.redirect(`/`);
       })
       .catch(e => {

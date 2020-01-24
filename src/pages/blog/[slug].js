@@ -347,7 +347,7 @@ BlogTemplate.getInitialProps = async function(ctx) {
       sha: post.data.sha,
       access_token,
       forkFullName,
-      baseRepoFullName: decodeURIComponent(process.env.REPO_FULL_NAME),
+      baseRepoFullName: process.env.REPO_FULL_NAME,
       ...data
     };
   } else {
