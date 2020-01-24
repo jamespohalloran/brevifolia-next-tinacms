@@ -25,7 +25,7 @@ function githubForkRouter() {
       )
       .then(forkResp => {
         const { full_name } = qs.parse(forkResp.data);
-        res.cookie(GITHUB_FORK_COOKIE_KEY, decodeURI(full_name));
+        res.cookie(GITHUB_FORK_COOKIE_KEY, decodeURIComponent(full_name));
         res.redirect(`/`);
       })
       .catch(e => {

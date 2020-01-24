@@ -10,8 +10,10 @@ const btoa = require("btoa");
 import Layout from "../../components/Layout";
 import toMarkdownString from "../../utils/toMarkdownString";
 
+const USE_CONTENT_API = true; //process.env.NODE_ENV == "staging";
+
 export class PRPlugin {
-  constructor(repoFullName, branch, accessToken) {
+  constructor(baseRepoFullName, forkRepoFullName, branch, accessToken) {
     this.__type = "screen";
     this.name = "Create Pull Request";
     this.Icon = () => <>🚀</>;
@@ -23,11 +25,11 @@ export class PRPlugin {
     this.createPR = () => {
       return axios({
         method: "POST",
-        url: `https://api.github.com/repos/jamespohalloran/brevifolia-next-tinacms/pulls?access_token=${accessToken}`,
+        url: `https://api.github.com/repos/${baseRepoFullName}/pulls?access_token=${accessToken}`,
         data: {
           title: "Update from TinaCMS",
           body: "Please pull these awesome changes in!",
-          head: `${repoFullName.split("/")[0]}:${branch}`,
+          head: `${forkRepoFullName.split("/")[0]}:${branch}`,
           base: branch
         }
       })
@@ -43,10 +45,26 @@ export class PRPlugin {
 
     this.Component = () => {
       return (
-        <div>
+        <div style={{ padding: "10px" }}>
+          <a
+            target="_blank"
+            href={`https://github.com/${baseRepoFullName}/compare/master...${
+              forkRepoFullName.split("/")[0]
+            }:${branch}`}
+          >
+            See Changes
+          </a>
           <p>
-            This will create a PR from {repoFullName} - {branch} into{" "}
-            {repoFullName} - {branch}
+            This will create a PR from:
+            <br />
+            <b>
+              {forkRepoFullName} - {branch}
+            </b>{" "}
+            <br />
+            into <br />
+            <b>
+              {baseRepoFullName} - {branch}
+            </b>
           </p>
           <button onClick={this.createPR}>Create PR</button>
 
@@ -56,8 +74,6 @@ export class PRPlugin {
     };
   }
 }
-
-const brancher = new PRPlugin();
 
 export default function BlogTemplate(props) {
   const sha = props.sha;
@@ -115,7 +131,7 @@ export default function BlogTemplate(props) {
 
     // save & commit the file when the "save" button is pressed
     onSubmit(data, form) {
-      if (process.env.NODE_ENV == "staging") {
+      if (USE_CONTENT_API) {
         console.log("SAVE", data);
         return axios({
           method: "PUT",
@@ -142,13 +158,25 @@ export default function BlogTemplate(props) {
 
   function usePRPlugin() {
     const brancher = useMemo(() => {
-      return new PRPlugin(props.forkFullName, props.branch, props.access_token);
-    }, [props.forkFullName, props.branch, props.access_token]);
+      return new PRPlugin(
+        props.baseRepoFullName,
+        props.forkFullName,
+        props.branch,
+        props.access_token
+      );
+    }, [
+      props.baseRepoFullName,
+      props.forkFullName,
+      props.branch,
+      props.access_token
+    ]);
 
     usePlugins(brancher);
   }
 
-  usePRPlugin();
+  if (USE_CONTENT_API) {
+    usePRPlugin();
+  }
 
   // END Tina CMS config -----------------------------
 
@@ -314,7 +342,7 @@ BlogTemplate.getInitialProps = async function(ctx) {
   const { slug } = ctx.query;
   const config = await import(`../../data/config.json`);
 
-  if (process.env.NODE_ENV == "staging") {
+  if (USE_CONTENT_API) {
     const access_token = ctx.req.cookies["tina-github-auth"];
     const forkFullName = ctx.req.cookies["tina-github-fork-name"];
 
@@ -333,6 +361,7 @@ BlogTemplate.getInitialProps = async function(ctx) {
       sha: post.data.sha,
       access_token,
       forkFullName,
+      baseRepoFullName: decodeURIComponent(process.env.REPO_FULL_NAME),
       ...data
     };
   } else {
