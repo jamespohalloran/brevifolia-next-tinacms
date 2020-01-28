@@ -1,14 +1,74 @@
-import * as React from "react";
+import React, { useMemo } from "react";
 import matter from "gray-matter";
 import ReactMarkdown from "react-markdown";
 import { useCMS, useLocalForm, useWatchFormValues } from "tinacms";
+import { usePlugins, ScreenPlugin } from "tinacms";
+const atob = require("atob");
+const { createPR, getContent, saveContent } = require("../../github/api");
 
 import Layout from "../../components/Layout";
 import toMarkdownString from "../../utils/toMarkdownString";
+import { USE_CONTENT_API } from "../../constants";
+
+export class PRPlugin {
+  constructor(baseRepoFullName, forkRepoFullName, branch, accessToken) {
+    this.__type = "screen";
+    this.name = "Create Pull Request";
+    this.Icon = () => <>🚀</>;
+    this.layout = "popup";
+    this.state = {
+      responseMessage: ""
+    };
+
+    this.createPR = () => {
+      createPR(baseRepoFullName, forkRepoFullName, branch, accessToken)
+        .then(response => {
+          alert(`you made a PR!: ${response.data.html_url}`);
+        })
+        .catch(err => {
+          alert(
+            `PR failed (Has a PR already been created?): ${JSON.stringify(err)}`
+          );
+        });
+    };
+
+    this.Component = () => {
+      return (
+        <div style={{ padding: "10px" }}>
+          <a
+            target="_blank"
+            href={`https://github.com/${baseRepoFullName}/compare/master...${
+              forkRepoFullName.split("/")[0]
+            }:${branch}`}
+          >
+            See Changes
+          </a>
+          <p>
+            This will create a PR from:
+            <br />
+            <b>
+              {forkRepoFullName} - {branch}
+            </b>{" "}
+            <br />
+            into <br />
+            <b>
+              {baseRepoFullName} - {branch}
+            </b>
+          </p>
+          <button onClick={this.createPR}>Create PR</button>
+
+          <div>{this.state.responseMessage}</div>
+        </div>
+      );
+    };
+  }
+}
 
 export default function BlogTemplate(props) {
+  const sha = props.sha;
   // TINA CMS Config ---------------------------
   const cms = useCMS();
+
   const [post, form] = useLocalForm({
     id: props.fileRelativePath, // needs to be unique
     label: "Edit Post",
@@ -17,7 +77,8 @@ export default function BlogTemplate(props) {
     initialValues: {
       fileRelativePath: props.fileRelativePath,
       frontmatter: props.data,
-      markdownBody: props.content
+      markdownBody: props.content,
+      sha
     },
 
     // field definition
@@ -58,29 +119,47 @@ export default function BlogTemplate(props) {
     ],
 
     // save & commit the file when the "save" button is pressed
-    onSubmit(data) {
-      return cms.api.git
-        .writeToDisk({
-          fileRelativePath: props.fileRelativePath,
-          content: toMarkdownString(data)
-        })
-        .then(() => {
-          return cms.api.git.commit({
-            files: [props.fileRelativePath],
-            message: `Commit from Tina: Update ${data.fileRelativePath}`
-          });
-        });
+    onSubmit(data, form) {
+      if (USE_CONTENT_API) {
+        saveContent(
+          props.forkFullName,
+          props.branch,
+          data.fileRelativePath,
+          props.access_token,
+          data.sha,
+          toMarkdownString(data),
+          "Update from TinaCMS"
+        ).then(response => {
+          window.location.reload();
+        }); //hack so sha updates
+      } else {
+        // create commit?
+        alert("saves on localhost not supported");
+      }
     }
   });
 
-  const writeToDisk = React.useCallback(formState => {
-    cms.api.git.onChange({
-      fileRelativePath: props.fileRelativePath,
-      content: toMarkdownString(formState.values)
-    });
-  }, []);
+  function usePRPlugin() {
+    const brancher = useMemo(() => {
+      return new PRPlugin(
+        props.baseRepoFullName,
+        props.forkFullName,
+        props.branch,
+        props.access_token
+      );
+    }, [
+      props.baseRepoFullName,
+      props.forkFullName,
+      props.branch,
+      props.access_token
+    ]);
 
-  useWatchFormValues(form, writeToDisk);
+    usePlugins(brancher);
+  }
+
+  if (USE_CONTENT_API) {
+    usePRPlugin();
+  }
 
   // END Tina CMS config -----------------------------
 
@@ -244,13 +323,40 @@ export default function BlogTemplate(props) {
 
 BlogTemplate.getInitialProps = async function(ctx) {
   const { slug } = ctx.query;
-  const content = await import(`../../posts/${slug}.md`);
   const config = await import(`../../data/config.json`);
-  const data = matter(content.default);
 
-  return {
-    fileRelativePath: `src/posts/${slug}.md`,
-    title: config.title,
-    ...data
-  };
+  if (USE_CONTENT_API) {
+    const access_token = ctx.req.cookies["tina-github-auth"];
+    const forkFullName = ctx.req.cookies["tina-github-fork-name"];
+
+    const branch = ctx.query.branch || "master";
+    const post = await getContent(
+      forkFullName,
+      branch,
+      `src/posts/${slug}.md`,
+      access_token
+    );
+
+    const data = matter(atob(post.data.content));
+
+    return {
+      fileRelativePath: `src/posts/${slug}.md`,
+      title: config.title,
+      branch,
+      sha: post.data.sha,
+      access_token,
+      forkFullName,
+      baseRepoFullName: process.env.REPO_FULL_NAME,
+      ...data
+    };
+  } else {
+    const content = await import(`../../posts/${slug}.md`);
+    const data = matter(content.default);
+
+    return {
+      fileRelativePath: `src/posts/${slug}.md`,
+      title: config.title,
+      ...data
+    };
+  }
 };
