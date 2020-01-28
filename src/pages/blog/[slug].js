@@ -8,8 +8,7 @@ const { createPR, getContent, saveContent } = require("../../github/api");
 
 import Layout from "../../components/Layout";
 import toMarkdownString from "../../utils/toMarkdownString";
-
-const USE_CONTENT_API = true; //process.env.NODE_ENV == "staging";
+import { USE_CONTENT_API } from "../../constants";
 
 export class PRPlugin {
   constructor(baseRepoFullName, forkRepoFullName, branch, accessToken) {

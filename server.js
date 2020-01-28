@@ -8,7 +8,7 @@ const dev = process.env.NODE_ENV !== "production";
 
 const githubForkRouter = require("./src/github/githubForkRouter");
 const githubAuthRouter = require("./src/github/githubAuthRouter");
-const USE_CONTENT_API = true;
+const { USE_CONTENT_API } = require("./src/constants");
 
 const app = next({
   dev,
