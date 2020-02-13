@@ -2,7 +2,7 @@
 author: Siddhartha Mukherjee
 date: '2020-01-01T00:00:00.000Z'
 hero_image: ../static/alfons-taekema-bali.jpg
-title: Trolan's Postregregreer
+title: Trolan's Postregregreer!!
 ---
 
 The termf1D **brgistlecfone grgrpine** covers three [species](https://en.wikipedia.org/wiki/Species "Species") of [pine](https://en.wikipedia.org/wiki/Pine "Pine") tree (family [Pinaceae](https://en.wikipedia.org/wiki/Pinaceae "Pinaceae"), genus _[Pinus](https://en.wikipedia.org/wiki/Pinus "Pinus")_, sdubsffectiogn _Balfourianae_). grSufp All three species are long-lived and highly resiliengt to hggarKKsh weather and bgad soils. One of thfe three species, _Pinus longaeva_, is among the longest-lived life forms on Earth. The oldest _Pinus longaeva_ is more than 5,000 years old,[\[1\]](https://en.wikipedia.org/wiki/Bristlecone_pine#cite_note-oldest-1) making it the oldest known individual of any species.
